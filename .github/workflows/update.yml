@@ -1,0 +1,120 @@
+name: Update packages
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: update-packages
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      changed: ${{ steps.changed.outputs.changed }}
+      base: ${{ steps.changed.outputs.base }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24
+      - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569
+        with:
+          primary-key: updater-${{ hashFiles('releases.json') }}-${{ github.run_id }}
+          restore-prefixes-first-match: updater-
+          gc-max-store-size: 2G
+      - name: Fetch and verify latest upstream releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/update.py
+      - id: changed
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          echo "base=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          if git diff --quiet -- releases.json && [[ "$EVENT_NAME" != workflow_dispatch ]]; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: steps.changed.outputs.changed == 'true'
+        with:
+          name: release-pins
+          path: releases.json
+          retention-days: 1
+  validate:
+    needs: prepare
+    if: needs.prepare.outputs.changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            system: x86_64-linux
+          - runner: ubuntu-24.04-arm
+            system: aarch64-linux
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ needs.prepare.outputs.base }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-pins
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24
+      - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569
+        with:
+          primary-key: nix-${{ matrix.system }}-${{ hashFiles('flake.lock', 'releases.json', 'nix/**', 'flake.nix') }}
+          restore-prefixes-first-match: nix-${{ matrix.system }}-
+          gc-max-store-size: 4G
+      - name: Pull from public binary cache
+        uses: cachix/cachix-action@3ba601ff5bbb07c7220846facfa2cd81eeee15a1
+        with:
+          name: t3-code-nix-flake
+          skipPush: true
+      - run: nix develop --command bash scripts/check.sh
+      - name: Smoke test both channels
+        run: |
+          nix build .#t3code -o result-stable
+          nix build .#t3code-nightly -o result-nightly
+          nix develop --command bash scripts/smoke.sh "$PWD/result-stable"
+          nix develop --command bash scripts/smoke.sh "$PWD/result-nightly"
+      - name: Publish to optional free public Cachix cache
+        if: vars.CACHIX_CACHE != ''
+        uses: cachix/cachix-action@3ba601ff5bbb07c7220846facfa2cd81eeee15a1
+        with:
+          name: ${{ vars.CACHIX_CACHE }}
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          useDaemon: false
+          pathsToPush: result-stable result-nightly
+  commit:
+    needs: [prepare, validate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+      - name: Refuse to publish if main changed during validation
+        env:
+          VALIDATED_BASE: ${{ needs.prepare.outputs.base }}
+        run: test "$(git rev-parse HEAD)" = "$VALIDATED_BASE"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: release-pins
+      - name: Commit only validated pins
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add releases.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: update stable and nightly T3 Code'
+            git push origin HEAD:main
+          fi

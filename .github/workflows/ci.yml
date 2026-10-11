@@ -1,0 +1,54 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            system: x86_64-linux
+          - runner: ubuntu-24.04-arm
+            system: aarch64-linux
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31
+      - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7
+        with:
+          primary-key: nix-${{ matrix.system }}-${{ hashFiles('flake.lock', 'releases.json', 'nix/**', 'flake.nix') }}
+          restore-prefixes-first-match: nix-${{ matrix.system }}-
+          gc-max-store-size: 4G
+      - name: Pull from public binary cache
+        uses: cachix/cachix-action@3ba601ff5bbb07c7220846facfa2cd81eeee15a1
+        with:
+          name: t3-code-nix-flake
+          skipPush: true
+      - name: Check and build both channels
+        run: nix develop --command bash scripts/check.sh
+      - name: Smoke test both channels
+        run: |
+          nix build .#t3code -o result-stable
+          nix build .#t3code-nightly -o result-nightly
+          nix develop --command bash scripts/smoke.sh "$PWD/result-stable"
+          nix develop --command bash scripts/smoke.sh "$PWD/result-nightly"
+      - name: Publish to optional free public Cachix cache
+        if: github.event_name != 'pull_request' && vars.CACHIX_CACHE != ''
+        uses: cachix/cachix-action@3ba601ff5bbb07c7220846facfa2cd81eeee15a1 # v16
+        with:
+          name: ${{ vars.CACHIX_CACHE }}
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          useDaemon: false
+          pathsToPush: result-stable result-nightly
