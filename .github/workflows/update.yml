@@ -78,6 +78,11 @@ jobs:
           name: t3-code-nix-flake
           skipPush: true
       - run: nix develop --command bash scripts/check.sh
+      - name: Allow AppImage namespaces on disposable Ubuntu runner
+        run: |
+          if [[ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
       - name: Smoke test both channels
         run: |
           nix build .#t3code -o result-stable

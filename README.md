@@ -42,7 +42,9 @@ against an untested base; the next scheduled run retries.
 Pushes and PRs also check formatting, Statix, deadnix, actionlint, updater tests,
 flake evaluation, both package builds and startup on native Linux runners.
 Actions are pinned by commit, permissions are scoped, jobs have timeouts, and
-PR jobs cannot publish to Cachix. Bot pushes made with `GITHUB_TOKEN` do not
+PR jobs cannot publish to Cachix. Ubuntu runner jobs allow unprivileged user
+namespaces before AppImage startup (required by its Bubblewrap FHS wrapper);
+this changes only the disposable runner, not consumer machines. Bot pushes made with `GITHUB_TOKEN` do not
 trigger another workflow; the update workflow validates the exact pins first.
 Startup tests prove headless application launch, not provider authentication
 or full interactive functionality. Scheduled runs can be delayed by GitHub;
