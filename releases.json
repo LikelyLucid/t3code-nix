@@ -13,15 +13,15 @@
     }
   },
   "nightly": {
-    "version": "0.1.1-nightly.20261018.3315",
+    "version": "0.1.1-nightly.20261018.3335",
     "assets": {
       "x86_64-linux": {
-        "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.1-nightly.20261018.3315/T3-Code-0.1.1-nightly.20261018.3315-x86_64.AppImage",
-        "hash": "sha256-XCtmGnHWke0xtR1KLC18nv5GGADHYKJJ4L5ygqtroEk="
+        "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.1-nightly.20261018.3335/T3-Code-0.1.1-nightly.20261018.3335-x86_64.AppImage",
+        "hash": "sha256-TBKIdwcCDKwkScUEMzMZKfdcgyiPSXl+3bTHHqIYCE8="
       },
       "aarch64-linux": {
-        "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.1-nightly.20261018.3315/T3-Code-0.1.1-nightly.20261018.3315-arm64.AppImage",
-        "hash": "sha256-c2OG4I+6w4z40kliXUX8ejauYfTaFUuMA3Mt/mQBhec="
+        "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.1-nightly.20261018.3335/T3-Code-0.1.1-nightly.20261018.3335-arm64.AppImage",
+        "hash": "sha256-5GB+gsjuFLJSKtx8Q3R3k5qR0cFFY4ALjURgn+CVcxQ="
       }
     }
   }
