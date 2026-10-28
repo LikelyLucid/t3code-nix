@@ -43,11 +43,12 @@ def select_release(releases, channel):
     return max(candidates, key=lambda r: r["published_at"])
 
 
-def asset_urls(release):
+def asset_urls(release, cli=False):
     version = release["tag_name"].removeprefix("v")
     urls = {}
     for system, arch in ARCHES.items():
-        name = f"T3-Code-{version}-{arch}.AppImage"
+        cli_arch = "x64" if system == "x86_64-linux" else "arm64"
+        name = f"t3-{version}-linux-{cli_arch}.tar.gz" if cli else f"T3-Code-{version}-{arch}.AppImage"
         matches = [a for a in release["assets"] if a["name"] == name and a.get("size", 1) > 0]
         if len(matches) != 1:
             raise ValueError(f"Expected one nonempty {name} asset")
@@ -71,16 +72,23 @@ def resolve(release):
             parts = line.split()
             if len(parts) == 2 and re.fullmatch(r"[a-fA-F0-9]{64}", parts[0]):
                 expected[parts[1].lstrip("*")] = parts[0].lower()
-    for system, url in asset_urls(release).items():
+    cli_assets = {}
+    urls = [(False, system, url) for system, url in asset_urls(release).items()]
+    urls += [(True, system, url) for system, url in asset_urls(release, cli=True).items()]
+    for cli, system, url in urls:
         result = subprocess.run(["nix", "store", "prefetch-file", "--json", url], check=True, capture_output=True, text=True)
         sri = json.loads(result.stdout)["hash"]
+        if cli and not checksums:
+            raise ValueError("CLI archives require SHA256SUMS")
         if checksums:
             name = url.rsplit("/", 1)[1]
             actual = base64.b64decode(sri.removeprefix("sha256-")).hex()
+            if cli and name not in expected:
+                raise ValueError(f"Missing checksum for {name}")
             if name in expected and expected[name] != actual:
                 raise ValueError(f"Checksum mismatched for {name}")
-        assets[system] = {"url": url, "hash": sri}
-    return {"version": release["tag_name"].removeprefix("v"), "assets": assets}
+        (cli_assets if cli else assets)[system] = {"url": url, "hash": sri}
+    return {"version": release["tag_name"].removeprefix("v"), "assets": assets, "cliAssets": cli_assets}
 
 
 def main():

@@ -1,7 +1,7 @@
 # T3 Code for Nix
 
 Standalone packaging of the official [T3 Code](https://github.com/pingdotgg/t3code)
-AppImages. Supports **x86_64-linux** and **aarch64-linux**.
+AppImages and headless CLI releases. Supports **x86_64-linux** and **aarch64-linux**.
 
 ```sh
 # Normal release (also the default package)
@@ -27,13 +27,40 @@ An overlay is also available as `inputs.t3code.overlays.default`. Both variants
 install `t3code` and the same desktop entry; choose one per profile.
 Refresh your consumer's lock with `nix flake update t3code` to adopt updates.
 
+## Headless servers and SSH runtime compatibility
+
+The CLI packages install `t3` without Electron:
+
+```sh
+nix run github:LikelyLucid/t3code-nix#t3-cli -- --version
+nix run github:LikelyLucid/t3code-nix#t3-cli-nightly -- --version
+```
+
+For a NixOS server, enable the runtime compatibility module alongside the CLI:
+
+```nix
+imports = [ inputs.t3code.nixosModules.runtime-compat ];
+environment.systemPackages = [ inputs.t3code.packages.${pkgs.stdenv.hostPlatform.system}.t3-cli ];
+```
+
+The packaged CLI patches the Node executable and native dependencies for NixOS.
+The compatibility module enables `nix-ld` with the libraries needed by generic
+Linux runtimes downloaded by desktop SSH setup and `t3 service install`. Those
+paths otherwise fail with exit 127, even when the packaged `t3` works. Import
+this module on the remote NixOS host before using desktop SSH setup.
+
+This preserves the upstream runtime version, executable and checksum check.
+T3 Connect pairing and Tailscale Serve use the normal upstream commands; no
+connection, authentication or pairing code is replaced. A separately configured
+NixOS system service does not require another `t3 service install`.
+
 ## Automated updates and checks
 
 Every six hours (and on manual dispatch), CI checks GitHub's stable release and
-published nightlies. It pins both AppImages by SHA-256 and checks upstream
+published nightlies. It pins AppImages and CLI archives by SHA-256 and checks upstream
 checksums when the upstream manifest includes the asset. Upstream's current
 `SHA256SUMS` only covers CLI archives; AppImage hashes are computed locally.
-Missing assets, unexpected URLs, download failures, and checksum mismatches
+CLI archives require a matching upstream checksum entry. Missing assets, unexpected URLs, download failures, and checksum mismatches
 abort without replacing the existing manifest. Both architectures must build
 and pass checks plus headless Electron startup before the bot commits pins to
 `main`. Manual dispatch runs full validation even when pins are unchanged. If `main` changes meanwhile, the update fails rather than publishing
@@ -46,7 +73,8 @@ PR jobs cannot publish to Cachix. Ubuntu runner jobs allow unprivileged user
 namespaces before AppImage startup (required by its Bubblewrap FHS wrapper);
 this changes only the disposable runner, not consumer machines. Bot pushes made with `GITHUB_TOKEN` do not
 trigger another workflow; the update workflow validates the exact pins first.
-Startup tests prove headless application launch, not provider authentication
+CLI checks also start the headless server, require HTTP 200 and mint a pairing
+URL in isolated temporary state. Startup tests prove headless application launch, not provider authentication
 or full interactive functionality. Scheduled runs can be delayed by GitHub;
 GitHub disables schedules on inactive public repos after 60 days.
 

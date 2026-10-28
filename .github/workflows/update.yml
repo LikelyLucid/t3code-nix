@@ -87,6 +87,8 @@ jobs:
         run: |
           nix build .#t3code -o result-stable
           nix build .#t3code-nightly -o result-nightly
+          nix build .#t3-cli -o result-cli-stable
+          nix build .#t3-cli-nightly -o result-cli-nightly
           nix develop --command bash scripts/smoke.sh "$PWD/result-stable"
           nix develop --command bash scripts/smoke.sh "$PWD/result-nightly"
       - name: Publish to optional free public Cachix cache
@@ -96,7 +98,7 @@ jobs:
           name: ${{ vars.CACHIX_CACHE }}
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
           useDaemon: false
-          pathsToPush: result-stable result-nightly
+          pathsToPush: result-stable result-nightly result-cli-stable result-cli-nightly
   commit:
     needs: [prepare, validate]
     runs-on: ubuntu-24.04
