@@ -23,25 +23,25 @@
     }
   },
   "nightly": {
-    "version": "0.1.7-nightly.20261031.3991",
+    "version": "0.1.7-nightly.20261101.4016",
     "assets": {
       "x86_64-linux": {
-        "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.7-nightly.20261031.3991/T3-Code-0.1.7-nightly.20261031.3991-x86_64.AppImage",
-        "hash": "sha256-orO0UXpPKmc+cCCh5wbQePrIkcOj++5MMA6KPFGWkIk="
+        "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.7-nightly.20261101.4016/T3-Code-0.1.7-nightly.20261101.4016-x86_64.AppImage",
+        "hash": "sha256-+AcFcRBUIuid04NSXuhnHR5QUfGipENO9dagh8C9gGQ="
       },
       "aarch64-linux": {
-        "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.7-nightly.20261031.3991/T3-Code-0.1.7-nightly.20261031.3991-arm64.AppImage",
-        "hash": "sha256-fRKNwViAaGR8tNqc5U+DUoHqhBKj8rArEw4ASWw/B20="
+        "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.7-nightly.20261101.4016/T3-Code-0.1.7-nightly.20261101.4016-arm64.AppImage",
+        "hash": "sha256-MyI3rPvIkVmWBoZB6o3NWTg/TjoqF2g9TwQLcc3ANuM="
       }
     },
     "cliAssets": {
       "x86_64-linux": {
-        "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.7-nightly.20261031.3991/t3-0.1.7-nightly.20261031.3991-linux-x64.tar.gz",
-        "hash": "sha256-NBvcJD5O3usXom3UFtQyQ4YeelhZFWL8dr3oruFWKWI="
+        "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.7-nightly.20261101.4016/t3-0.1.7-nightly.20261101.4016-linux-x64.tar.gz",
+        "hash": "sha256-/D/jq6oa/yKE6fMUTfFQ1NFu8oQTTSR8790OJI/3ly0="
       },
       "aarch64-linux": {
-        "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.7-nightly.20261031.3991/t3-0.1.7-nightly.20261031.3991-linux-arm64.tar.gz",
-        "hash": "sha256-UhnSdP6hYEWSb+hMm5Gqo+yZ42ubhwvW58UplbCYRYA="
+        "url": "https://github.com/pingdotgg/t3code/releases/download/v0.1.7-nightly.20261101.4016/t3-0.1.7-nightly.20261101.4016-linux-arm64.tar.gz",
+        "hash": "sha256-idc6IfFPDmRffVhM4xhbXzX/QSl8yuEIlhvpBrhtxAU="
       }
     }
   }
